@@ -42,5 +42,8 @@ class CustomDataset(Dataset):
             label = transform(label)
         return image, label
     
+    def get_image_path(self, idx):
+        return self.image_paths[idx]
+    
     def get_label_path(self, idx):
         return self.label_paths[idx]

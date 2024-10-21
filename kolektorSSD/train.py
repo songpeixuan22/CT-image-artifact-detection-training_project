@@ -5,45 +5,54 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from utils.net import UNet
+from utils.network import U_Net, R2AttU_Net
 from utils.trainer import Trainer
 from utils.dataloader import CustomDataset
 
-
 # hyperparameters
-lr = 8e-5
-epochs=15
-batch_size = 16
-
+lr = 1e-6
+epochs = 15
+batch_size = 32
+weight_decay = 1e-4
 
 # resize and convert to tensor
 transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomVerticalFlip(),
+    transforms.RandomCrop(size=(256, 128)),
     transforms.Resize((256, 128)),
-    transforms.ToTensor()
+    transforms.ToTensor(),
 ])
 
+
 # data directory
-data_dir = '.\\data'
+data_dir = './data'
 dataset = CustomDataset(data_dir, transform=transform)
 
 print(f'Loaded {len(dataset)} samples')
 
 # divide dataset into training and testing sets
-train_size = int(0.7 * len(dataset))
+train_size = int(0.9 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-
 # set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using device: {device}')
 
-
 # create model, optimizer and criterion
-model = UNet(in_channels=1, out_channels=1)
-optimizer = Adam(model.parameters(), lr=lr)
+retrain = 1
+model = U_Net(1, 1)
+if retrain:
+    model.load_state_dict(torch.load('model.pth'))
+    model.to(device)
+    model.eval()
+else:
+    model.to(device)
+
+optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 criterion = nn.MSELoss()
 
 # create SummaryWriter

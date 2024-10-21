@@ -1,11 +1,12 @@
 import torch
 from torch.utils.data import DataLoader
+from torch import nn
 from torchvision import transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.net import UNet
+from utils.network import U_Net, R2AttU_Net
 from utils.dataloader import CustomDataset
 
 # 设置设备
@@ -15,35 +16,40 @@ print(f'Using device: {device}')
 # 定义数据预处理
 transform = transforms.Compose([
     transforms.Resize((256, 128)),
-    transforms.ToTensor()
+    transforms.ToTensor(),
 ])
 
 # 加载数据集
-data_dir = '.\\data'
+data_dir = './data'
 dataset = CustomDataset(data_dir, transform=transform)
 
-# 划分训练集和测试集
-train_size = int(0.7 * len(dataset))
-test_size = len(dataset) - train_size
-train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 # 加载模型
-model = UNet(in_channels=1, out_channels=1)
+model = U_Net(1,1)
 model.load_state_dict(torch.load('model.pth'))
 model.to(device)
 model.eval()
 
-# 获取测试集的第20个样本
+# 定义损失函数
+criterion = nn.MSELoss()
+
+# 获取第i+1个样本
 for i, (image, label) in enumerate(test_loader):
-    if i == 19:  # 索引从0开始，所以第20个元素的索引是19
+    if i == 327:  # 索引从0开始，所以第6个元素的索引是5
         image, label = image.to(device), label.to(device)
+        print(f'Image shape: {image.shape}')
+        print(f'Image path: {dataset.get_image_path(i)}')
+        print(f'Label path: {dataset.get_label_path(i)}')
         break
 
 # 模型处理图像
 with torch.no_grad():
     output = model(image)
+
+# 计算损失
+loss = criterion(output, label)
+print(f'Loss: {loss.item()}')
 
 # 将张量转换为numpy数组
 image_np = image.cpu().numpy().squeeze()

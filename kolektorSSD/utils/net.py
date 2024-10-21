@@ -40,6 +40,8 @@ class UNet(nn.Module):
         self.decoder1 = conv_block(128, 64)
         
         self.final_conv = nn.Conv2d(64, out_channels, kernel_size=1)
+
+        self.mean_adjustment = nn.Parameter(torch.zeros(1))
         
     def forward(self, x):
         enc1 = self.encoder1(x)
@@ -65,7 +67,7 @@ class UNet(nn.Module):
         dec1 = torch.cat((dec1, enc1), dim=1)
         dec1 = self.decoder1(dec1)
         
-        return self.final_conv(dec1)
+        return self.final_conv(dec1) + self.mean_adjustment
 
 # demo
 if __name__ == '__main__':
