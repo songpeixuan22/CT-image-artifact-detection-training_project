@@ -5,12 +5,12 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 
-from utils.network import U_Net, R2AttU_Net
+from utils.network import U_Net
 from utils.trainer import Trainer
-from utils.dataloader import CustomDataset
+from utils.dataloader import CropDataset
 
 # hyperparameters
-lr = 1e-6
+lr = 1e-5
 epochs = 15
 batch_size = 32
 weight_decay = 1e-4
@@ -19,15 +19,14 @@ weight_decay = 1e-4
 transform = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
-    transforms.RandomCrop(size=(256, 128)),
-    transforms.Resize((256, 128)),
+    transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
 
 
 # data directory
 data_dir = './data'
-dataset = CustomDataset(data_dir, transform=transform)
+dataset = CropDataset(data_dir, transform=transform)
 
 print(f'Loaded {len(dataset)} samples')
 
@@ -53,7 +52,7 @@ else:
     model.to(device)
 
 optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-criterion = nn.MSELoss()
+criterion = nn.BCEWithLogitsLoss()
 
 # create SummaryWriter
 writer = SummaryWriter()
@@ -74,8 +73,7 @@ with torch.no_grad():
     for x, y in test_loader:
         x, y = x.to(device), y.to(device)
         output = model(x)
-        test_loss += criterion(output, y).item()
-    test_loss /= len(test_loader)
+        test_loss += 256*128*criterion(output, y).item()
     print(f'Test Loss: {test_loss}')
 
 # close the SummaryWriter

@@ -2,12 +2,10 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn
 from torchvision import transforms
-from PIL import Image
 import matplotlib.pyplot as plt
-import numpy as np
 
-from utils.network import U_Net, R2AttU_Net
-from utils.dataloader import CustomDataset
+from utils.network import U_Net
+from utils.dataloader import CropDataset
 
 # 设置设备
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -15,19 +13,19 @@ print(f'Using device: {device}')
 
 # 定义数据预处理
 transform = transforms.Compose([
-    transforms.Resize((256, 128)),
+    transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
 
 # 加载数据集
 data_dir = './data'
-dataset = CustomDataset(data_dir, transform=transform)
+dataset = CropDataset(data_dir, transform=transform)
 
 test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
 # 加载模型
 model = U_Net(1,1)
-model.load_state_dict(torch.load('model.pth'))
+model.load_state_dict(torch.load('model.pth'), )
 model.to(device)
 model.eval()
 
@@ -37,10 +35,7 @@ criterion = nn.MSELoss()
 # 获取第i+1个样本
 for i, (image, label) in enumerate(test_loader):
     if i == 327:  # 索引从0开始，所以第6个元素的索引是5
-        image, label = image.to(device), label.to(device)
-        print(f'Image shape: {image.shape}')
-        print(f'Image path: {dataset.get_image_path(i)}')
-        print(f'Label path: {dataset.get_label_path(i)}')
+        image, label = image[1].to(device), label[1].to(device)
         break
 
 # 模型处理图像
@@ -70,5 +65,7 @@ axs[2].set_title('Label')
 
 for ax in axs:
     ax.axis('off')
+
+plt.savefig('result.png')
 
 plt.show()
